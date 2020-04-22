@@ -18,6 +18,9 @@ INTERVALS = 1000 / sampling_rate
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)
 
+fig2 = plt.figure()
+max = fig2.add_subplot(1,1,1)
+
 # global var to save timestamp
 xs = []
 
@@ -31,8 +34,13 @@ magY = []
 magZ = []
 
 # make one of them true at a time
-isAnimate = False
-isCollectData = True
+isAnimate = True
+isCollectData = False
+
+#instrument modes
+c = 0
+ints = ["DRUM", "PIANO"]
+noises = [['Tom.mp3', 'Snare.mp3', 'Cymbal.mp3'], ['piano-g_G_major.wav', 'piano-c_C_major.wav', 'piano-b_B_major.wav']]
 
 
 def getSensorData():
@@ -51,7 +59,7 @@ def getSensorData():
 
 
 # This function is called periodically from FuncAnimation
-def animate(i, xs, accX, accY, accZ):
+def animate(i, xs, accX, accY, accZ, magX, magY, magZ):
     [naccX, naccY, naccZ, nmagX, nmagY, nmagZ] = getSensorData()
 
     xs.append(dt.datetime.now().strftime('%S.%f'))  # %H:%M:%S.%f
@@ -69,15 +77,25 @@ def animate(i, xs, accX, accY, accZ):
     _accY = accY[-PREV_SAMPLE:]
     _accZ = accZ[-PREV_SAMPLE:]
 
+    _magX = magX[-PREV_SAMPLE:]
+    _magY = magY[-PREV_SAMPLE:]
+    _magZ = magZ[-PREV_SAMPLE:]
+
     xs = xs[-PREV_SAMPLE:]
 
     ax.clear()
+    max.clear()
 
     ax.plot(xs, _accX, label='AX')
     ax.plot(xs, _accY, label='AY')
     ax.plot(xs, _accZ, label='AZ')
 
+    max.plot(xs, _magX, label='MagX')
+    max.plot(xs, _magY, label='MagY')
+    max.plot(xs, _magZ, label='MagZ')
+
     ax.legend(loc='upper left')
+    max.legend(loc='upper left')
     plt.xticks(rotation=45, ha='right')
     plt.subplots_adjust(bottom=0.30)
 
@@ -95,27 +113,31 @@ def getData():
     return [t, naccX, naccY, naccZ, nmagX, nmagY, nmagZ]
 
 
+def instrumental(ax, ay, az, mx, my, mz):
+    if ax > 10:
+        print "Note C"
+        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
+        playsound('piano-c_C_major.wav')
+    elif ay > 10:
+        print "Note B"
+        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
+        playsound('piano-b_B_major.wav')
+    elif az > 35:
+        print "Note G"
+        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
+        playsound('piano-g_G_major.wav')
+    print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
+
+
 def main():
     if isAnimate == True:
         # interval in milliseconds
-        ani = anim.FuncAnimation(fig, animate, fargs=(xs, accX, accY, accZ), interval=INTERVALS, repeat=True)
+        ani = anim.FuncAnimation(fig, animate, fargs=(xs, accX, accY, accZ, magX, magY, magZ), interval=INTERVALS, repeat=True)
         plt.show()
     if isCollectData == True:
         while True:
             [t, naccX, naccY, naccZ, nmagX, nmagY, nmagZ] = getData()
-            if naccX > 10:
-                print "Note C"
-                print (t, ' ', naccX, ' ', naccY, ' ', naccZ, ' ', nmagX, ' ', nmagY, ' ', nmagZ)
-                playsound('piano-c_C_major.wav')
-            elif naccY > 10:
-                print "Note B"
-                print (t, ' ', naccX, ' ', naccY, ' ', naccZ, ' ', nmagX, ' ', nmagY, ' ', nmagZ)
-                playsound('piano-b_B_major.wav')
-            elif naccZ > 35:
-                print "Note G"
-                print (t, ' ', naccX, ' ', naccY, ' ', naccZ, ' ', nmagX, ' ', nmagY, ' ', nmagZ)
-                playsound('piano-g_G_major.wav')
-            print (t, ' ', naccX, ' ', naccY, ' ', naccZ, ' ', nmagX, ' ', nmagY, ' ', nmagZ)
+            instrumental(naccX, naccY, naccZ, nmagX, nmagY, nmagZ)
             # time.sleep(INTERVALS/1000)   # Delays for INTERVALS seconds.
 
 
