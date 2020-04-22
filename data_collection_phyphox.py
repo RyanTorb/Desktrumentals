@@ -4,15 +4,16 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 from playsound import playsound
+from mingus.containers.instrument import Piano, Guitar
 
 # phyphox configuration
 PP_ADDRESS = "http://192.168.1.8" #change this based on whatever your phone says
 PP_CHANNELS = ["accX", "accY", "accZ", "magX", "magY", "magZ"]
-sampling_rate = 100
+sampling_rate = 10000
 
 # animation and data collection config
 PREV_SAMPLE = 50
-INTERVALS = 1000 / sampling_rate
+INTERVALS = 10000 / sampling_rate
 
 # Create figure for plotting
 fig = plt.figure()
@@ -34,11 +35,12 @@ magY = []
 magZ = []
 
 # make one of them true at a time
-isAnimate = True
-isCollectData = False
+isAnimate = False
+isCollectData = True
 
-#instrument modes
-c = 0
+# instrument modes
+modes = 0
+switching = False
 ints = ["DRUM", "PIANO"]
 noises = [['Tom.mp3', 'Snare.mp3', 'Cymbal.mp3'], ['piano-g_G_major.wav', 'piano-c_C_major.wav', 'piano-b_B_major.wav']]
 
@@ -112,21 +114,60 @@ def getData():
     magZ.append(nmagZ)
     return [t, naccX, naccY, naccZ, nmagX, nmagY, nmagZ]
 
+recent_action = []
+
+def check_stabilized(l):
+    sub_l = l[len(l)-6:]
+    m = 0
+    for i in sub_l:
+        if i > m:
+            m = i
+    return i < .4
 
 def instrumental(ax, ay, az, mx, my, mz):
-    if ax > 10:
-        print "Note C"
-        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
-        playsound('piano-c_C_major.wav')
-    elif ay > 10:
-        print "Note B"
-        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
-        playsound('piano-b_B_major.wav')
-    elif az > 35:
-        print "Note G"
-        print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
-        playsound('piano-g_G_major.wav')
-    print (ax, ' ', ay, ' ', az, ' ', mx, ' ', my, ' ', mz)
+    global modes, switching, recent_action
+    if mz > 20:
+        if not switching:
+            modes = (modes + 1) % len(ints)
+            switching = True
+            print "Now in " + ints[modes] + " mode"
+            recent_action = []
+            time.sleep(1)
+            return
+    switching = False
+    diff = abs(az - 9.8)
+    stabile = False
+    if diff > .4:
+        if len(recent_action) == 0:
+            print "Action detected"
+        recent_action.append(diff)
+        return
+    if diff < .4:
+        if len(recent_action) == 0:
+            stabile = False
+        elif 0 < len(recent_action) < 5:
+            recent_action.append(diff)
+        else:
+            if not check_stabilized(recent_action):
+                recent_action.append(diff)
+            stabile = check_stabilized(recent_action)
+    if stabile:
+        print str(recent_action)
+        peak = 0
+        for i in recent_action:
+            if i > peak:
+                peak = i
+        if .4 < peak <= 1.2:
+            print "Action determined: finger tap"
+            #playsound(noises[modes][0])
+
+        elif 1.2 < peak <= 3.7:
+            print "Action determined: knuckle rap"
+            playsound(noises[modes][1])
+        elif 3.7 < peak:
+            print "Action determined: palm slap"
+            playsound(noises[modes][2])
+        recent_action = []
 
 
 def main():
