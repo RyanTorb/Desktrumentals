@@ -4,7 +4,6 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 from playsound import playsound
-from mingus.containers.instrument import Piano, Guitar
 
 # phyphox configuration
 PP_ADDRESS = "http://192.168.1.8" #change this based on whatever your phone says
@@ -41,8 +40,11 @@ isCollectData = True
 # instrument modes
 modes = 0
 switching = False
-ints = ["DRUM", "PIANO"]
-noises = [['Tom.mp3', 'Snare.mp3', 'Cymbal.mp3'], ['piano-g_G_major.wav', 'piano-c_C_major.wav', 'piano-b_B_major.wav']]
+ints = ["DRUM", "PIANO", "TIMPANI", "SAXOPHONE"]
+noises = [['Tom.mp3', 'Snare.mp3', 'Cymbal.mp3'],
+          ['piano-g_G_major.wav', 'piano-c_C_major.wav', 'piano-b_B_major.wav'],
+          ['timpani1.mp3', 'timpani2.wav', 'timpani3.wav'],
+          ['saxophoneA.mp3', 'saxophonetenor.wav', 'saxophoneDeep.wav']]
 
 
 def getSensorData():
@@ -159,8 +161,7 @@ def instrumental(ax, ay, az, mx, my, mz):
                 peak = i
         if .4 < peak <= 1.2:
             print "Action determined: finger tap"
-            #playsound(noises[modes][0])
-
+            playsound(noises[modes][0])
         elif 1.2 < peak <= 3.7:
             print "Action determined: knuckle rap"
             playsound(noises[modes][1])
